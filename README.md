@@ -37,6 +37,12 @@ Es una versión jugable del Tetris clásico con todas las mecánicas que esperar
 - Las **7 piezas estándar** (I, O, T, S, Z, J, L) con colores diferenciados.
 - **Piezas especiales** (no estándar):
   - Pentominós **+**, **U** e **Y** (5 bloques): aparecen en ~10% de las piezas.
+  - **Power-ups** (piezas 1×1 que aparecen cada 5 líneas, al aterrizar aplican su efecto y desaparecen; +50×nivel puntos):
+    - 💣 Bomba: destruye el área 3×3 alrededor.
+    - ⚡ Rayo: limpia su fila y su columna.
+    - 🎨 Tinte: convierte en comodines (blancos) todos los bloques del color sobre el que cae; los comodines cuentan como celda llena.
+    - ⬇ Gravedad: compacta los huecos de cada columna.
+    - ❄ Congelar: detiene la caída automática 5 s (las teclas siguen funcionando).
   - **1×1** de recompensa: tras limpiar 4 líneas de golpe (Tetris), la siguiente pieza es un solo bloque.
   - **Anillo 3×3 hueco** (8 bloques) como reto: 3% de probabilidad a partir del nivel 2.
 - **Rotación** con _wall kicks_ básicos (pequeños desplazamientos para que la pieza pueda rotar pegada a la pared).
@@ -112,7 +118,7 @@ Aporta el aspecto visual con estética _dark / retro arcade_: fondo oscuro, tipo
 
 Contiene toda la lógica del juego. A grandes rasgos:
 
-- **Modelo del tablero**: una matriz `ROWS × COLS` donde cada celda guarda `0` (vacía) o un índice de color (1–12) que identifica la pieza (1–7 estándar, 8–10 pentominós, 11 la 1×1 y 12 el anillo).
+- **Modelo del tablero**: una matriz `ROWS × COLS` donde cada celda guarda `0` (vacía) o un índice de color (1–18) que identifica la pieza (1–7 estándar, 8–10 pentominós, 11 la 1×1, 12 el anillo, 13–17 power-ups y 18 el comodín).
 - **Sorteo de piezas** (`randomPiece`): primero intenta el anillo (`RING_CHANCE`, desde `RING_MIN_LEVEL`), luego un pentominó (`PENTOMINO_CHANCE`) y si no, una de las 7 estándar. La 1×1 no se sortea: `lockPiece` la pone como siguiente pieza cuando `clearLines` devuelve 4.
 - **Piezas**: definidas como matrices cuadradas. Para rotar se calcula la transposición + reverso de filas (`rotateCW`).
 - **Detección de colisiones** (`collide`): comprueba que ninguna celda de la pieza salga del tablero ni se solape con bloques ya fijados.
@@ -178,7 +184,7 @@ Algunos parámetros fáciles de tunear en `game.js`:
 | `COLS`         | Columnas del tablero                     | `10`                  |
 | `ROWS`         | Filas del tablero                        | `20`                  |
 | `BLOCK`        | Tamaño en píxeles de cada celda          | `30`                  |
-| `COLORS`       | Paleta de colores por tipo de pieza      | 12 colores            |
+| `COLORS`       | Paleta de colores por tipo de pieza      | 18 colores            |
 | `PENTOMINO_CHANCE` | Probabilidad de un pentominó (+, U, Y) | `0.10`              |
 | `RING_CHANCE`  | Probabilidad del anillo 3×3 hueco        | `0.03`                |
 | `RING_MIN_LEVEL` | Nivel desde el que puede salir el anillo | `2`                 |
