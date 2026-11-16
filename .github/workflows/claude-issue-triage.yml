@@ -1,0 +1,101 @@
+name: Claude Issue Triage
+
+# Analiza cada issue nuevo o editado con Claude: asigna labels, publica un
+# diagnóstico y prepara una rama claude/issue-N con la posible implementación
+# y un PR en borrador.
+
+on:
+  issues:
+    types: [opened, edited]
+
+concurrency:
+  group: claude-triage-${{ github.event.issue.number }}
+  cancel-in-progress: true
+
+jobs:
+  triage:
+    # - opened, o edited solo si cambió el título o el cuerpo (no labels ni asignados)
+    # - nunca por acciones de bots (evita bucles)
+    # - si el issue menciona @claude, lo atiende claude.yml (evita ramas duplicadas)
+    if: |
+      github.event.sender.type != 'Bot' &&
+      !contains(github.event.issue.body, '@claude') &&
+      !contains(github.event.issue.title, '@claude') &&
+      (
+        github.event.action == 'opened' ||
+        (github.event.action == 'edited' && (github.event.changes.title != null || github.event.changes.body != null))
+      )
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+      - name: Run Claude triage
+        uses: anthropics/claude-code-action@v1
+        env:
+          GH_TOKEN: ${{ github.token }}
+        with:
+          claude_code_oauth_token: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          claude_args: >-
+            --allowedTools "Read,Glob,Grep,Edit,Write,Bash(git:*),Bash(gh issue view:*),Bash(gh issue edit:*),Bash(gh issue comment:*),Bash(gh label list:*),Bash(gh pr list:*),Bash(gh pr create:*),Bash(gh pr comment:*)"
+          prompt: |
+            Eres el responsable de triage del repositorio ${{ github.repository }}.
+            Issue: #${{ github.event.issue.number }}
+            Título: ${{ github.event.issue.title }}
+            Evento: ${{ github.event.action }} (opened = issue nuevo, edited = el autor modificó título o descripción)
+
+            Responde siempre en español de México. Sigue SIEMPRE este checklist, en orden:
+
+            1. Lee el contexto del issue:
+               `gh issue view ${{ github.event.issue.number }} --comments`
+            2. Explora la estructura del repositorio: lee CLAUDE.md, README.md, index.html, style.css y game.js.
+            3. Entiende el requerimiento: tipo (bug, mejora, documentación, pregunta), archivos y funciones
+               afectadas, y criterio de aceptación. No inventes funciones ni comportamientos: cita el código real.
+            4. Asigna labels: consulta `gh label list` y usa SOLO labels existentes (no crees nuevos).
+               `gh issue edit ${{ github.event.issue.number }} --add-label "<label>"`.
+               Si el evento es edited, quita con `--remove-label` los que ya no apliquen.
+            5. Genera la rama con la posible implementación:
+               - Nombre: `claude/issue-${{ github.event.issue.number }}`.
+               - Si ya existe en origin (`git ls-remote --heads origin claude/issue-${{ github.event.issue.number }}`),
+                 haz `git fetch origin` y `git checkout` de esa rama para continuar sobre ella; si no, créala desde main.
+               - Implementa el cambio mínimo y acotado al issue, respetando CLAUDE.md (JavaScript vanilla,
+                 sin dependencias ni build). No toques archivos que el issue no requiera.
+               - Si el issue es una pregunta, es inválido o falta información para implementar, NO crees rama:
+                 explícalo en el diagnóstico y termina después del paso 7.
+            6. Haz commit y push de los cambios en tu rama:
+               - Mensaje convencional: `fix: ...`, `feat: ...` o `docs: ...` terminado en `(#${{ github.event.issue.number }})`.
+               - `git push -u origin claude/issue-${{ github.event.issue.number }}`.
+               - PR en borrador: si `gh pr list --head claude/issue-${{ github.event.issue.number }} --state open` no
+                 devuelve nada, crea uno con `gh pr create --draft --base main --head claude/issue-${{ github.event.issue.number }}`,
+                 título descriptivo y cuerpo con `Closes #${{ github.event.issue.number }}`, resumen y cómo probarlo.
+                 Si ya existe, usa `gh pr comment` para describir el nuevo commit.
+            7. Publica el diagnóstico general como comentario del issue. Empieza con la línea
+               `<!-- claude-triage -->` y usa estas secciones:
+               ## Diagnóstico de Claude
+               ### Resumen
+               ### Clasificación y labels
+               ### Análisis técnico (archivos y funciones involucradas)
+               ### Causa probable o enfoque propuesto
+               ### Plan de implementación
+               ### Riesgos y supuestos
+               ### Preguntas abiertas
+               ### Rama y PR (enlaces, o el motivo por el que no se generaron)
+               Si el evento es opened, usa `gh issue comment ${{ github.event.issue.number }} --body-file <archivo>`.
+               Si es edited, actualiza el comentario previo con
+               `gh issue comment ${{ github.event.issue.number }} --edit-last --body-file <archivo>`;
+               si falla, crea uno nuevo.
+
+            Sé honesto: si no estás seguro de la causa, dilo explícitamente en "Riesgos y supuestos".
