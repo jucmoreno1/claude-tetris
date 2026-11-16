@@ -25,7 +25,6 @@ Claves de `game.js` que requieren leer varias funciones juntas:
 
 ## Comportamientos a tener en cuenta (observados en el código, no corregidos)
 - `togglePause()` al reanudar no vuelve a ocultar `#overlay`.
-- Si el game over ocurre dentro de `loop` (caída por gravedad), `endGame()` cancela el frame actual pero `loop` vuelve a llamar `requestAnimationFrame` al final, así que el bucle sigue corriendo.
 - El README dice que `X` también rota (cierto en el código), pero el panel de controles de `index.html` no lo muestra.
 
 ## Repositorio

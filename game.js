@@ -241,6 +241,7 @@ function togglePause() {
 }
 
 function loop(ts) {
+  if (gameOver || paused) return;
   const dt = ts - lastTime;
   lastTime = ts;
   dropAccum += dt;
@@ -250,6 +251,7 @@ function loop(ts) {
       current.y++;
     } else {
       lockPiece();
+      if (gameOver) { draw(); return; } // no reprogramar el bucle tras endGame()
     }
   }
   draw();
@@ -314,7 +316,7 @@ themeBtn.addEventListener('click', () => {
   applyTheme(newTheme);
   try { localStorage.setItem('theme', newTheme); } catch (e) {}
   themeBtn.blur(); // evita que Space/Enter reactiven el botón durante el juego
-  if (!gameOver) draw(); // refresca la rejilla si el bucle está en pausa
+  draw(); // refresca la rejilla si el bucle está detenido (pausa o game over)
 });
 applyTheme(document.documentElement.dataset.theme);
 

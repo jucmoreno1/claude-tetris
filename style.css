@@ -204,9 +204,7 @@ kbd {
 
 /* ---- Toggle de tema ---- */
 .theme-toggle {
-  position: fixed;
-  top: 16px;
-  right: 16px;
+  align-self: flex-start;
   background: var(--board-bg);
   color: var(--text);
   border: 1px solid var(--border);
