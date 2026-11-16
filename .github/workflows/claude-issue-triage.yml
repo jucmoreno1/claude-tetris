@@ -3,6 +3,7 @@ name: Claude Issue Triage
 # Analiza cada issue nuevo o editado con Claude: asigna labels, publica un
 # diagnóstico y prepara una rama claude/issue-N con la posible implementación
 # y un PR en borrador. 
+ 
 
 on:
   issues:
@@ -98,4 +99,4 @@ jobs:
                `gh issue comment ${{ github.event.issue.number }} --edit-last --body-file <archivo>`;
                si falla, crea uno nuevo.
 
-            Sé honesto: si no estás seguro de la causa, dilo explícitamente en "Riesgos y supuestos".
+            Sé honesto: si no estás seguro de la causa, dilo explícitamente en "Riesgos y supuestos ".
