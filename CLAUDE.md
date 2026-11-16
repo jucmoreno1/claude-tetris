@@ -17,7 +17,7 @@ Tres archivos: `index.html` (DOM: `<canvas id="board">` 300x600, panel lateral c
 
 Claves de `game.js` que requieren leer varias funciones juntas:
 - **Estado global mutable** en variables `let` de módulo (`board`, `current`, `next`, `score`, `lines`, `level`, `paused`, `gameOver`, `dropInterval`, `animId`...). `init()` las reinicia todas; también es el handler del botón Reiniciar.
-- **Celdas = índice de pieza.** `board[r][c]` y las matrices de `PIECES` guardan `0` o el tipo `1..7`, que es a la vez el índice en `COLORS`. Agregar una pieza implica tocar `PIECES`, `COLORS` y el `* 7` de `randomPiece()`.
+- **Celdas = índice de pieza.** `board[r][c]` y las matrices de `PIECES` guardan `0` o el tipo `1..12`, que es a la vez el índice en `COLORS` (1 a 7 estándar, 8 a 10 pentominós, 11 la 1x1 de recompensa y 12 el anillo hueco). Agregar una pieza implica tocar `PIECES`, `COLORS` y el sorteo de `randomPiece()` (franjas de `RING_CHANCE` y `PENTOMINO_CHANCE`; `STANDARD_COUNT` solo cubre las 7 estándar). La 1x1 no se sortea: `lockPiece()` la pone en `next` cuando `clearLines()` devuelve 4.
 - **Ciclo de vida de una pieza:** `loop` (requestAnimationFrame + `dropAccum`) o los handlers de teclado bajan la pieza; al chocar llaman `lockPiece()` = `merge()` + `clearLines()` + `spawn()`. `spawn()` promueve `next` a `current` y llama `endGame()` si la nueva pieza ya colisiona.
 - **`collide(shape, ox, oy)`** es la única validación de posición; movimiento, rotación (`tryRotate` con kicks `[0,-1,1,-2,2]`), ghost (`ghostY`) y drops dependen de ella. Permite `y < 0` (sobre el tablero).
 - **Nivel y velocidad** se recalculan solo dentro de `clearLines()`: `level = floor(lines/10)+1`, `dropInterval = max(100, 1000 - (level-1)*90)`.

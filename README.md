@@ -35,6 +35,10 @@ Es una versión jugable del Tetris clásico con todas las mecánicas que esperar
 
 - Tablero de **10 × 20** celdas.
 - Las **7 piezas estándar** (I, O, T, S, Z, J, L) con colores diferenciados.
+- **Piezas especiales** (no estándar):
+  - Pentominós **+**, **U** e **Y** (5 bloques): aparecen en ~10% de las piezas.
+  - **1×1** de recompensa: tras limpiar 4 líneas de golpe (Tetris), la siguiente pieza es un solo bloque.
+  - **Anillo 3×3 hueco** (8 bloques) como reto: 3% de probabilidad a partir del nivel 2.
 - **Rotación** con _wall kicks_ básicos (pequeños desplazamientos para que la pieza pueda rotar pegada a la pared).
 - **Soft drop** (bajada acelerada) y **hard drop** (caída instantánea).
 - **Pieza fantasma** (_ghost piece_): muestra dónde aterrizará la pieza actual.
@@ -108,7 +112,8 @@ Aporta el aspecto visual con estética _dark / retro arcade_: fondo oscuro, tipo
 
 Contiene toda la lógica del juego. A grandes rasgos:
 
-- **Modelo del tablero**: una matriz `ROWS × COLS` donde cada celda guarda `0` (vacía) o un índice de color (1–7) que identifica la pieza.
+- **Modelo del tablero**: una matriz `ROWS × COLS` donde cada celda guarda `0` (vacía) o un índice de color (1–12) que identifica la pieza (1–7 estándar, 8–10 pentominós, 11 la 1×1 y 12 el anillo).
+- **Sorteo de piezas** (`randomPiece`): primero intenta el anillo (`RING_CHANCE`, desde `RING_MIN_LEVEL`), luego un pentominó (`PENTOMINO_CHANCE`) y si no, una de las 7 estándar. La 1×1 no se sortea: `lockPiece` la pone como siguiente pieza cuando `clearLines` devuelve 4.
 - **Piezas**: definidas como matrices cuadradas. Para rotar se calcula la transposición + reverso de filas (`rotateCW`).
 - **Detección de colisiones** (`collide`): comprueba que ninguna celda de la pieza salga del tablero ni se solape con bloques ya fijados.
 - **Wall kicks** (`tryRotate`): si la rotación choca, intenta desplazar la pieza ±1 y ±2 columnas antes de descartar el giro.
@@ -173,7 +178,10 @@ Algunos parámetros fáciles de tunear en `game.js`:
 | `COLS`         | Columnas del tablero                     | `10`                  |
 | `ROWS`         | Filas del tablero                        | `20`                  |
 | `BLOCK`        | Tamaño en píxeles de cada celda          | `30`                  |
-| `COLORS`       | Paleta de colores por tipo de pieza      | 7 colores             |
+| `COLORS`       | Paleta de colores por tipo de pieza      | 12 colores            |
+| `PENTOMINO_CHANCE` | Probabilidad de un pentominó (+, U, Y) | `0.10`              |
+| `RING_CHANCE`  | Probabilidad del anillo 3×3 hueco        | `0.03`                |
+| `RING_MIN_LEVEL` | Nivel desde el que puede salir el anillo | `2`                 |
 | `LINE_SCORES`  | Puntos por 1, 2, 3 o 4 líneas eliminadas | `[0,100,300,500,800]` |
 | `dropInterval` | Velocidad inicial de caída en ms         | `1000`                |
 

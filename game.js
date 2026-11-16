@@ -13,6 +13,11 @@ const COLORS = [
   '#e57373', // Z - red
   '#90caf9', // J - pale blue
   '#ffb74d', // L - orange
+  '#4db6ac', // + (pentominó) - teal
+  '#f06292', // U (pentominó) - pink
+  '#dce775', // Y (pentominó) - lime
+  '#b0bec5', // 1x1 (recompensa) - blue grey
+  '#a1887f', // anillo 3x3 hueco (reto) - brown
 ];
 
 const PIECES = [
@@ -24,7 +29,21 @@ const PIECES = [
   [[5,5,0],[0,5,5],[0,0,0]],                  // Z
   [[6,0,0],[6,6,6],[0,0,0]],                  // J
   [[0,0,7],[7,7,7],[0,0,0]],                  // L
+  [[0,8,0],[8,8,8],[0,8,0]],                  // +
+  [[9,0,9],[9,9,9],[0,0,0]],                  // U
+  [[0,0,0,0],[10,10,10,10],[0,10,0,0],[0,0,0,0]], // Y
+  [[11]],                                      // 1x1
+  [[12,12,12],[12,0,12],[12,12,12]],          // anillo 3x3 hueco
 ];
+
+// Tipos especiales y su probabilidad de aparición
+const STANDARD_COUNT = 7;
+const PENTOMINOES = [8, 9, 10];
+const SINGLE = 11;
+const RING = 12;
+const PENTOMINO_CHANCE = 0.10; // ~1 de cada 10 piezas
+const RING_CHANCE = 0.03;      // 3%, solo desde RING_MIN_LEVEL
+const RING_MIN_LEVEL = 2;
 
 const LINE_SCORES = [0, 100, 300, 500, 800];
 
@@ -46,10 +65,24 @@ function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
 }
 
-function randomPiece() {
-  const type = Math.floor(Math.random() * 7) + 1;
+function makePiece(type) {
   const shape = PIECES[type].map(row => [...row]);
   return { type, shape, x: Math.floor(COLS / 2) - Math.floor(shape[0].length / 2), y: 0 };
+}
+
+function randomPiece() {
+  // Franjas: [0, ringBand) anillo, [ringBand, ringBand + PENTOMINO_CHANCE) pentominó, resto estándar
+  const ringBand = level >= RING_MIN_LEVEL ? RING_CHANCE : 0;
+  const roll = Math.random();
+  let type;
+  if (roll < ringBand) {
+    type = RING;
+  } else if (roll < ringBand + PENTOMINO_CHANCE) {
+    type = PENTOMINOES[Math.floor(Math.random() * PENTOMINOES.length)];
+  } else {
+    type = Math.floor(Math.random() * STANDARD_COUNT) + 1;
+  }
+  return makePiece(type);
 }
 
 function collide(shape, ox, oy) {
@@ -110,6 +143,7 @@ function clearLines() {
     dropInterval = Math.max(100, 1000 - (level - 1) * 90);
     updateHUD();
   }
+  return cleared;
 }
 
 function ghostY() {
@@ -137,8 +171,13 @@ function softDrop() {
 
 function lockPiece() {
   merge();
-  clearLines();
+  const cleared = clearLines();
   spawn();
+  // Recompensa: tras un Tetris (4 líneas), la siguiente pieza es una 1x1
+  if (cleared === 4 && !gameOver) {
+    next = makePiece(SINGLE);
+    drawNext();
+  }
 }
 
 function spawn() {
