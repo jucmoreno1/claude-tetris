@@ -32,8 +32,23 @@
         </div>
 
         <div class="panel-section">
+          <span class="label">ENERGY <span id="energy-hint" class="energy-hint">0%</span></span>
+          <div class="energy-bar"><div id="energy-fill" class="energy-fill"></div></div>
+        </div>
+
+        <div class="panel-section">
           <span class="label">NEXT</span>
           <canvas id="next-canvas" width="120" height="120"></canvas>
+        </div>
+
+        <div id="queue-section" class="panel-section hidden">
+          <span class="label">LUEGO <span class="energy-hint">(<span id="queue-left">0</span> piezas)</span></span>
+          <canvas id="queue-canvas" width="120" height="120"></canvas>
+        </div>
+
+        <div id="hold-section" class="panel-section hidden">
+          <span class="label">HOLD <span class="energy-hint">(<span id="hold-charges">0</span> usos)</span></span>
+          <canvas id="hold-canvas" width="80" height="80"></canvas>
         </div>
 
         <div class="panel-section controls">
@@ -43,6 +58,8 @@
             <li><kbd>↑</kbd> rotar</li>
             <li><kbd>↓</kbd> bajar</li>
             <li><kbd>Space</kbd> caída</li>
+            <li><kbd>E</kbd> habilidad</li>
+            <li><kbd>C</kbd> reservar</li>
             <li><kbd>P</kbd> pausa</li>
           </ul>
         </div>
@@ -54,6 +71,14 @@
         <p id="overlay-title">GAME OVER</p>
         <p id="overlay-score"></p>
         <button id="restart-btn">Reiniciar</button>
+      </div>
+    </div>
+
+    <div id="ability-menu" class="overlay hidden">
+      <div class="overlay-box ability-box">
+        <p class="ability-title">ELIGE UNA HABILIDAD</p>
+        <div id="ability-list" class="ability-list"></div>
+        <p class="ability-cancel"><kbd>Esc</kbd> cancelar (conservas la energía)</p>
       </div>
     </div>
   </div>

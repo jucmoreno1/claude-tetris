@@ -64,6 +64,23 @@ const FREEZE_MS = 5000;
 
 const LINE_SCORES = [0, 100, 300, 500, 800];
 
+// Habilidades cargables: la barra de energía se llena limpiando líneas y,
+// al estar llena, la tecla E abre el menú para elegir una habilidad.
+const ENERGY_MAX = 100;
+const ENERGY_PER_LINE = 25;     // 4 líneas llenan la barra
+const PREVIEW_PIECES = 15;      // piezas durante las que se ven las siguientes 5
+const LOOKAHEAD = 4;            // piezas extra después de "next" (next + 4 = 5)
+const SLOW_MS = 10000;          // duración de la ralentización
+const SLOW_FACTOR = 2.5;        // la caída automática va 2.5 veces más lenta
+const HOLD_CHARGES = 3;         // usos de reserva (el primero se gasta al activarla)
+const ABILITIES = [
+  { id: 'preview', icon: '👁', name: 'Ver siguientes 5', desc: `durante ${PREVIEW_PIECES} piezas` },
+  { id: 'swap',    icon: '🔄', name: 'Intercambiar pieza', desc: 'cambia la actual por otra' },
+  { id: 'slow',    icon: '🐢', name: 'Ralentizar tiempo', desc: `${SLOW_MS / 1000} s de caída lenta` },
+  { id: 'undo',    icon: '↶',  name: 'Deshacer', desc: 'revierte la última colocación' },
+  { id: 'hold',    icon: '📦', name: 'Reservar pieza', desc: `${HOLD_CHARGES} usos con la tecla C` },
+];
+
 const canvas = document.getElementById('board');
 const ctx = canvas.getContext('2d');
 const nextCanvas = document.getElementById('next-canvas');
@@ -75,8 +92,22 @@ const overlay = document.getElementById('overlay');
 const overlayTitle = document.getElementById('overlay-title');
 const overlayScore = document.getElementById('overlay-score');
 const restartBtn = document.getElementById('restart-btn');
+const energyFill = document.getElementById('energy-fill');
+const energyHint = document.getElementById('energy-hint');
+const queueSection = document.getElementById('queue-section');
+const queueCanvas = document.getElementById('queue-canvas');
+const queueCtx = queueCanvas.getContext('2d');
+const queueLeftEl = document.getElementById('queue-left');
+const holdSection = document.getElementById('hold-section');
+const holdCanvas = document.getElementById('hold-canvas');
+const holdCtx = holdCanvas.getContext('2d');
+const holdChargesEl = document.getElementById('hold-charges');
+const abilityMenu = document.getElementById('ability-menu');
+const abilityList = document.getElementById('ability-list');
 
 let board, current, next, score, lines, level, paused, gameOver, lastTime, dropAccum, dropInterval, animId, pendingPowerups, freezeLeft;
+// Estado de habilidades
+let energy, choosing, lookahead, previewLeft, slowLeft, held, holdCharges, canHold, undoSnapshot;
 
 function createBoard() {
   return Array.from({ length: ROWS }, () => new Array(COLS).fill(0));
@@ -155,6 +186,7 @@ function clearLines() {
   }
   if (cleared) {
     pendingPowerups += Math.floor((lines + cleared) / POWERUP_EVERY_LINES) - Math.floor(lines / POWERUP_EVERY_LINES);
+    energy = Math.min(ENERGY_MAX, energy + cleared * ENERGY_PER_LINE);
     lines += cleared;
     score += (LINE_SCORES[cleared] || 0) * level;
     level = Math.floor(lines / 10) + 1;
@@ -172,9 +204,11 @@ function ghostY() {
 
 function hardDrop() {
   const gy = ghostY();
+  const scoreBefore = score;
   score += (gy - current.y) * 2;
   current.y = gy;
   lockPiece();
+  if (undoSnapshot) undoSnapshot.score = scoreBefore; // Deshacer también quita los puntos de la caída
 }
 
 function softDrop() {
@@ -229,27 +263,48 @@ function applyPowerup(type, x, y) {
   score += POWERUP_SCORE * level;
 }
 
+function takeSnapshot() {
+  // Estado previo a fijar la pieza, para la habilidad Deshacer
+  undoSnapshot = {
+    board: board.map(row => [...row]),
+    score, lines, level, dropInterval, pendingPowerups, freezeLeft,
+    current: current.type,
+    next: next.type,
+    lookahead: lookahead.map(p => p.type),
+  };
+}
+
 function lockPiece() {
+  takeSnapshot();
   if (isPowerup(current.type)) applyPowerup(current.type, current.x, current.y);
   else merge();
   const cleared = clearLines();
   spawn();
   if (gameOver) return;
-  // Recompensa: tras un Tetris (4 líneas), la siguiente pieza es una 1x1
+  // Recompensa: tras un Tetris (4 líneas), la siguiente pieza es una 1x1.
+  // La "next" desplazada vuelve al frente de la cola para no alterar lo ya mostrado.
   if (cleared === 4) {
-    next = makePiece(SINGLE);
-    drawNext();
+    pushFront(makePiece(SINGLE));
   } else if (pendingPowerups > 0) {
     pendingPowerups--;
-    next = makePiece(POWERUPS[Math.floor(Math.random() * POWERUPS.length)]);
-    drawNext();
+    pushFront(makePiece(POWERUPS[Math.floor(Math.random() * POWERUPS.length)]));
   }
   updateHUD();
 }
 
+function pushFront(piece) {
+  lookahead.unshift(next);
+  lookahead.pop();
+  next = piece;
+  drawNext();
+}
+
 function spawn() {
   current = next;
-  next = randomPiece();
+  next = lookahead.shift();
+  lookahead.push(randomPiece());
+  canHold = true;
+  if (previewLeft > 0) previewLeft--;
   if (collide(current.shape, current.x, current.y)) {
     endGame();
   }
@@ -260,6 +315,107 @@ function updateHUD() {
   scoreEl.textContent = score.toLocaleString();
   linesEl.textContent = lines;
   levelEl.textContent = level;
+  energyFill.style.width = `${(energy / ENERGY_MAX) * 100}%`;
+  const full = energy >= ENERGY_MAX;
+  energyFill.classList.toggle('full', full);
+  energyHint.textContent = full ? 'Pulsa E' : `${energy}%`;
+}
+
+// ---- Habilidades ----
+function abilityAvailable(id) {
+  if (id === 'undo') return !!undoSnapshot;
+  if (id === 'hold') return canHold;
+  return true;
+}
+
+function openAbilityMenu() {
+  if (energy < ENERGY_MAX || choosing || paused || gameOver) return;
+  choosing = true;
+  cancelAnimationFrame(animId);
+  abilityList.innerHTML = '';
+  ABILITIES.forEach((a, i) => {
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'ability';
+    btn.disabled = !abilityAvailable(a.id);
+    btn.innerHTML = `<kbd>${i + 1}</kbd><span class="ability-icon">${a.icon}</span>` +
+      `<span class="ability-text"><strong>${a.name}</strong><small>${a.desc}</small></span>`;
+    btn.addEventListener('click', () => chooseAbility(i));
+    abilityList.appendChild(btn);
+  });
+  abilityMenu.classList.remove('hidden');
+}
+
+function closeAbilityMenu() {
+  choosing = false;
+  abilityMenu.classList.add('hidden');
+  lastTime = performance.now();
+  animId = requestAnimationFrame(loop);
+}
+
+function chooseAbility(i) {
+  const a = ABILITIES[i];
+  if (!a || !abilityAvailable(a.id)) return;
+  energy = 0;
+  switch (a.id) {
+    case 'preview': previewLeft = PREVIEW_PIECES; break;
+    case 'swap': swapCurrent(); break;
+    case 'slow': slowLeft = SLOW_MS; break;
+    case 'undo': undoLast(); break;
+    case 'hold': holdCharges = HOLD_CHARGES; holdPiece(); break;
+  }
+  drawNext();
+  drawHold();
+  updateHUD();
+  closeAbilityMenu();
+}
+
+function swapCurrent() {
+  // Otra pieza del pool (estándar o pentominó) distinta de la actual
+  const pool = [...Array(STANDARD_COUNT).keys()].map(i => i + 1).concat(PENTOMINOES)
+    .filter(t => t !== current.type);
+  const piece = makePiece(pool[Math.floor(Math.random() * pool.length)]);
+  // Conserva la posición si cabe; si no, prueba desde la posición de aparición
+  piece.x = current.x;
+  piece.y = current.y;
+  if (collide(piece.shape, piece.x, piece.y)) {
+    const fresh = makePiece(piece.type);
+    if (collide(fresh.shape, fresh.x, fresh.y)) return; // no cabe: se queda la actual
+    current = fresh;
+  } else {
+    current = piece;
+  }
+}
+
+function undoLast() {
+  const s = undoSnapshot;
+  undoSnapshot = null;
+  board = s.board;
+  ({ score, lines, level, dropInterval, pendingPowerups, freezeLeft } = s);
+  current = makePiece(s.current);
+  next = makePiece(s.next);
+  lookahead = s.lookahead.map(makePiece);
+  canHold = true;
+  dropAccum = 0;
+}
+
+function holdPiece() {
+  if (!canHold || holdCharges <= 0) return;
+  if (held) {
+    const piece = makePiece(held);
+    if (collide(piece.shape, piece.x, piece.y)) return; // no cabe: no se intercambia
+    held = current.type;
+    current = piece;
+  } else {
+    held = current.type;
+    spawn();
+  }
+  holdCharges--;
+  canHold = false;
+  undoSnapshot = null; // deshacer tras reservar duplicaría o perdería piezas
+  dropAccum = 0;
+  drawHold();
+  drawNext();
 }
 
 function drawBlock(context, x, y, colorIndex, size, alpha) {
@@ -320,24 +476,52 @@ function draw() {
     for (let c = 0; c < current.shape[r].length; c++)
       drawBlock(ctx, current.x + c, current.y + r, current.shape[r][c], BLOCK);
 
-  if (freezeLeft > 0) {
-    ctx.fillStyle = '#e1f5fe';
-    ctx.font = 'bold 16px sans-serif';
-    ctx.textAlign = 'left';
-    ctx.textBaseline = 'top';
-    ctx.fillText(`❄ ${Math.ceil(freezeLeft / 1000)}s`, 6, 6);
-  }
+  // Indicadores de efectos temporales
+  const timers = [];
+  if (freezeLeft > 0) timers.push({ text: `❄ ${Math.ceil(freezeLeft / 1000)}s`, color: '#e1f5fe' });
+  if (slowLeft > 0) timers.push({ text: `🐢 ${Math.ceil(slowLeft / 1000)}s`, color: '#a5d6a7' });
+  ctx.font = 'bold 16px sans-serif';
+  ctx.textAlign = 'left';
+  ctx.textBaseline = 'top';
+  timers.forEach((t, i) => {
+    ctx.fillStyle = t.color;
+    ctx.fillText(t.text, 6, 6 + i * 20);
+  });
+}
+
+// Dibuja una pieza centrada en una rejilla de 4x4 celdas de tamaño `size`,
+// desplazada (ox, oy) píxeles dentro del canvas.
+function drawPieceBox(context, piece, size, ox, oy) {
+  const shape = piece.shape;
+  const offX = Math.floor((4 - shape[0].length) / 2);
+  const offY = Math.floor((4 - shape.length) / 2);
+  context.save();
+  context.translate(ox, oy);
+  for (let r = 0; r < shape.length; r++)
+    for (let c = 0; c < shape[r].length; c++)
+      drawBlock(context, offX + c, offY + r, shape[r][c], size);
+  context.restore();
 }
 
 function drawNext() {
-  const NB = 30;
   nextCtx.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
-  const shape = next.shape;
-  const offX = Math.floor((4 - shape[0].length) / 2);
-  const offY = Math.floor((4 - shape.length) / 2);
-  for (let r = 0; r < shape.length; r++)
-    for (let c = 0; c < shape[r].length; c++)
-      drawBlock(nextCtx, offX + c, offY + r, shape[r][c], NB);
+  drawPieceBox(nextCtx, next, 30, 0, 0);
+  // Cola extendida (habilidad "Ver siguientes 5"): 4 piezas en rejilla 2x2
+  const showQueue = previewLeft > 0;
+  queueSection.classList.toggle('hidden', !showQueue);
+  if (!showQueue) return;
+  queueLeftEl.textContent = previewLeft;
+  queueCtx.clearRect(0, 0, queueCanvas.width, queueCanvas.height);
+  lookahead.forEach((p, i) => drawPieceBox(queueCtx, p, 15, (i % 2) * 60, Math.floor(i / 2) * 60));
+}
+
+function drawHold() {
+  const show = held || holdCharges > 0;
+  holdSection.classList.toggle('hidden', !show);
+  if (!show) return;
+  holdChargesEl.textContent = holdCharges;
+  holdCtx.clearRect(0, 0, holdCanvas.width, holdCanvas.height);
+  if (held) drawPieceBox(holdCtx, makePiece(held), 20, 0, 0);
 }
 
 function endGame() {
@@ -363,13 +547,14 @@ function togglePause() {
 }
 
 function loop(ts) {
-  if (gameOver || paused) return;
+  if (gameOver || paused || choosing) return;
   const dt = ts - lastTime;
   lastTime = ts;
+  if (slowLeft > 0) slowLeft = Math.max(0, slowLeft - dt);
   if (freezeLeft > 0) {
     freezeLeft = Math.max(0, freezeLeft - dt); // caída automática congelada
   } else {
-    dropAccum += dt;
+    dropAccum += slowLeft > 0 ? dt / SLOW_FACTOR : dt;
   }
   if (dropAccum >= dropInterval) {
     dropAccum = 0;
@@ -395,19 +580,44 @@ function init() {
   dropAccum = 0;
   pendingPowerups = 0;
   freezeLeft = 0;
+  energy = 0;
+  choosing = false;
+  previewLeft = 0;
+  slowLeft = 0;
+  held = 0;
+  holdCharges = 0;
+  canHold = true;
+  undoSnapshot = null;
   lastTime = performance.now();
   next = randomPiece();
+  lookahead = Array.from({ length: LOOKAHEAD }, randomPiece);
   spawn();
+  drawHold();
   updateHUD();
   overlay.classList.add('hidden');
+  abilityMenu.classList.add('hidden');
   cancelAnimationFrame(animId);
   animId = requestAnimationFrame(loop);
 }
 
 document.addEventListener('keydown', e => {
+  if (choosing) {
+    // Menú de habilidades abierto: 1 a 5 eligen, E o Escape cierran sin gastar energía
+    const n = parseInt(e.key, 10);
+    if (n >= 1 && n <= ABILITIES.length) chooseAbility(n - 1);
+    else if (e.code === 'Escape' || e.code === 'KeyE') closeAbilityMenu();
+    e.preventDefault();
+    return;
+  }
   if (e.code === 'KeyP') { togglePause(); return; }
   if (paused || gameOver) return;
   switch (e.code) {
+    case 'KeyE':
+      openAbilityMenu();
+      return;
+    case 'KeyC':
+      holdPiece();
+      break;
     case 'ArrowLeft':
       if (!collide(current.shape, current.x - 1, current.y)) current.x--;
       break;

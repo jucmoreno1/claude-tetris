@@ -49,6 +49,12 @@ Es una versión jugable del Tetris clásico con todas las mecánicas que esperar
 - **Soft drop** (bajada acelerada) y **hard drop** (caída instantánea).
 - **Pieza fantasma** (_ghost piece_): muestra dónde aterrizará la pieza actual.
 - **Vista previa** de la siguiente pieza.
+- **Habilidades cargables**: una barra de energía se llena al limpiar líneas (25% por línea). Llena, la tecla `E` pausa el juego y abre un menú (teclas `1` a `5` o clic; `Esc` cancela sin gastar energía):
+  1. 👁 **Ver siguientes 5**: muestra las 4 piezas posteriores a la siguiente durante 15 piezas.
+  2. 🔄 **Intercambiar pieza**: cambia la pieza actual por otra del pool (estándar o pentominó) distinta.
+  3. 🐢 **Ralentizar tiempo**: la caída automática va 2.5 veces más lenta durante 10 s.
+  4. ↶ **Deshacer**: revierte la última colocación (tablero, puntos, líneas, nivel y cola de piezas). Se deshabilita tras reservar o si ya se usó.
+  5. 📦 **Reservar pieza (hold)**: guarda la pieza actual y da 3 usos de reserva con `C` (incluido el de la activación); una vez por pieza.
 - **Sistema de puntuación** clásico de Tetris (100 / 300 / 500 / 800 multiplicado por nivel).
 - **Niveles** que aumentan cada 10 líneas y aceleran la caída.
 - **Pausa** y **Game Over** con opción de reinicio.
@@ -94,6 +100,9 @@ Después abre `http://localhost:8000` en el navegador.
 | `↑` o `X` | Rotar la pieza en sentido horario |
 | `↓`       | Soft drop (bajar más rápido)      |
 | `Espacio` | Hard drop (caída instantánea)     |
+| `E`       | Abrir menú de habilidades (energía llena) |
+| `1` a `5` | Elegir habilidad en el menú       |
+| `C`       | Reservar o intercambiar con la reserva (con usos de hold) |
 | `P`       | Pausar / reanudar                 |
 
 ---
@@ -190,6 +199,10 @@ Algunos parámetros fáciles de tunear en `game.js`:
 | `RING_MIN_LEVEL` | Nivel desde el que puede salir el anillo | `2`                 |
 | `LINE_SCORES`  | Puntos por 1, 2, 3 o 4 líneas eliminadas | `[0,100,300,500,800]` |
 | `dropInterval` | Velocidad inicial de caída en ms         | `1000`                |
+| `ENERGY_PER_LINE` | Energía por línea limpiada (máximo `ENERGY_MAX` = 100) | `25`  |
+| `PREVIEW_PIECES` | Piezas que dura "Ver siguientes 5"     | `15`                  |
+| `SLOW_MS` / `SLOW_FACTOR` | Duración y factor de la ralentización | `10000` / `2.5` |
+| `HOLD_CHARGES` | Usos de reserva por activación           | `3`                   |
 
 > Si cambias `COLS`, `ROWS` o `BLOCK`, recuerda ajustar también `width` y `height` del `<canvas id="board">` en `index.html` para que coincida (`COLS × BLOCK` × `ROWS × BLOCK`).
 
