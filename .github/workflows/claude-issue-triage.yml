@@ -2,7 +2,7 @@ name: Claude Issue Triage
 
 # Analiza cada issue nuevo o editado con Claude: asigna labels, publica un
 # diagnóstico y prepara una rama claude/issue-N con la posible implementación
-# y un PR en borrador.
+# y un PR en borrador. 
 
 on:
   issues:
