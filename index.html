@@ -51,6 +51,14 @@
           <canvas id="hold-canvas" width="80" height="80"></canvas>
         </div>
 
+        <div id="records-section" class="panel-section records-section">
+          <span class="label">RECORDS</span>
+          <ol id="records-list" class="records-list"></ol>
+          <span class="records-stat">Mejor combo: <b id="best-combo">0</b></span>
+          <span class="records-stat">Líneas máximas: <b id="max-lines">0</b></span>
+          <button id="records-reset" class="records-reset" type="button">Borrar records</button>
+        </div>
+
         <div class="panel-section controls">
           <span class="label">CONTROLS</span>
           <ul>
@@ -70,6 +78,15 @@
       <div class="overlay-box">
         <p id="overlay-title">GAME OVER</p>
         <p id="overlay-score"></p>
+        <div id="records-over" class="records-over hidden">
+          <p id="new-record" class="new-record hidden"></p>
+          <form id="record-form" class="record-form hidden">
+            <input id="record-name" type="text" maxlength="12" placeholder="Tu nombre" autocomplete="off" aria-label="Nombre para el récord" />
+            <button type="submit">Guardar</button>
+          </form>
+          <span class="label">TOP 5</span>
+          <ol id="records-over-list" class="records-list"></ol>
+        </div>
         <button id="restart-btn">Reiniciar</button>
       </div>
     </div>
