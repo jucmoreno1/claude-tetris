@@ -65,6 +65,7 @@ Es una versión jugable del Tetris clásico con todas las mecánicas que esperar
   - **Mejor combo** y **líneas máximas** en una partida, que se actualizan solos al terminar cada partida.
   - **Combo**: número de piezas fijadas seguidas que limpian al menos una línea; se reinicia a 0 al fijar una pieza que no limpia ninguna.
   - Botón **Borrar records** (pide confirmación).
+- **Skins visuales** (selector en el panel, junto al botón de tema): **Retro** (bloques cuadrados y colores planos, respeta el tema claro u oscuro), **Neon** (fondo negro y brillo con `shadowBlur`), **Pastel** (colores suaves y esquinas redondeadas) y **Pixel art** (textura de pixeles con luces y sombras). Se cambia sin recargar, se aplica también a las vistas previa, cola y reserva, y se recuerda en `localStorage` (clave `tetris.skin`).
 
 ---
 
@@ -201,7 +202,8 @@ Algunos parámetros fáciles de tunear en `game.js`:
 | `COLS`         | Columnas del tablero                     | `10`                  |
 | `ROWS`         | Filas del tablero                        | `20`                  |
 | `BLOCK`        | Tamaño en píxeles de cada celda          | `30`                  |
-| `COLORS`       | Paleta de colores por tipo de pieza      | 18 colores            |
+| `COLORS`       | Paleta de colores por tipo de pieza (skin Retro) | 18 colores    |
+| `SKINS`        | Skins: paleta (mismo índice que `COLORS`), fondo, rejilla y función de bloque | `retro` |
 | `PENTOMINO_CHANCE` | Probabilidad de un pentominó (+, U, Y) | `0.10`              |
 | `RING_CHANCE`  | Probabilidad del anillo 3×3 hueco        | `0.03`                |
 | `RING_MIN_LEVEL` | Nivel desde el que puede salir el anillo | `2`                 |
