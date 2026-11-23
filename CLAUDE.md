@@ -22,12 +22,9 @@ Claves de `game.js` que requieren leer varias funciones juntas:
 - **Habilidades cargables:** `clearLines()` suma `energy`; con la barra llena `E` abre `#ability-menu` (`choosing` detiene `loop` como la pausa) y `chooseAbility()` gasta toda la energía. La cola es `next` + `lookahead` (4 piezas): `spawn()` la avanza y `pushFront()` mete la 1x1 o el power-up sin descartar piezas ya mostradas. `lockPiece()` guarda `undoSnapshot` (`hardDrop()` le corrige el puntaje); reservar lo invalida. Ralentizar divide `dt` entre `SLOW_FACTOR` con `slowLeft` (ms).
 - **Ciclo de vida de una pieza:** `loop` (requestAnimationFrame + `dropAccum`) o los handlers de teclado bajan la pieza; al chocar llaman `lockPiece()` = `merge()` + `clearLines()` + `spawn()`. `spawn()` promueve `next` a `current` y llama `endGame()` si la nueva pieza ya colisiona.
 - **`collide(shape, ox, oy)`** es la única validación de posición; movimiento, rotación (`tryRotate` con kicks `[0,-1,1,-2,2]`), ghost (`ghostY`) y drops dependen de ella. Permite `y < 0` (sobre el tablero).
-- **Nivel y velocidad** se recalculan solo dentro de `clearLines()`: `level = floor(lines/10)+1`, `dropInterval = max(100, 1000 - (level-1)*90)`.
+- **Nivel y velocidad** se calculan en `init()` y `clearLines()`: `level = gameStartLevel + floor(lines/10)`, `dropInterval = max(100, 1000 - (level-1)*90)`. `startLevel` es la preferencia del menú de pausa (`localStorage` `tetris.startLevel`); `init()` la copia a `gameStartLevel`, así que cambiarla a mitad de partida aplica en la siguiente.
+- **Pausa:** `togglePause()` muestra `#pause-menu` (`#overlay` queda solo para game over). Con `paused` el `keydown` delega en `handlePauseMenuKey()` y no llega al juego; `closePauseMenu()` fija `inputGuardUntil` (150 ms) e `ignoreRepeats`. Orden en `keydown`: `choosing` (consume Escape) antes que la pausa.
 - **Dimensiones acopladas:** si cambias `COLS`, `ROWS` o `BLOCK`, ajusta `width`/`height` del canvas en `index.html`. La vista previa asume una rejilla de 4x4 a 30 px.
-
-## Comportamientos a tener en cuenta (observados en el código, no corregidos)
-- `togglePause()` al reanudar no vuelve a ocultar `#overlay`.
-- El README dice que `X` también rota (cierto en el código), pero el panel de controles de `index.html` no lo muestra.
 
 ## Repositorio
 `00__promts/` es el historial local de prompts que genera un hook del usuario: está en `.gitignore` y no se edita a mano.
