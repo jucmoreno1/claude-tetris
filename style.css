@@ -329,6 +329,100 @@ kbd {
   color: var(--muted);
 }
 
+/* ---- Menú de pausa ---- */
+.pause-box {
+  gap: 10px;
+  width: 220px;
+}
+
+.pause-title {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: 4px;
+  color: var(--accent);
+}
+
+.pause-btn {
+  width: 100%;
+  padding: 9px 0;
+  background: var(--board-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 1px;
+  cursor: pointer;
+}
+
+.pause-btn:hover,
+.pause-btn:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.pause-controls {
+  list-style: none;
+  width: 100%;
+  padding: 8px 10px;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12px;
+  color: var(--muted);
+  text-align: left;
+  background: var(--board-bg);
+  border: 1px solid var(--border);
+  border-radius: 6px;
+}
+
+.pause-controls.hidden {
+  display: none;
+}
+
+.pause-controls li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.pause-controls li span {
+  min-width: 70px;
+  display: inline-flex;
+  gap: 3px;
+}
+
+.pause-level {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text);
+}
+
+.pause-level select {
+  background: var(--board-bg);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 3px 6px;
+  font: inherit;
+}
+
+.pause-level select:focus-visible {
+  border-color: var(--accent);
+  outline: none;
+}
+
+.pause-hint {
+  font-size: 11px;
+  color: var(--muted);
+}
+
 /* ---- Records locales ---- */
 .records-list {
   list-style: none;
