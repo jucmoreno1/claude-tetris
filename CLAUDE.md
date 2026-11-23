@@ -13,7 +13,7 @@ python3 -m http.server 8000     # o servidor estático; abrir http://localhost:8
 No hay suite de pruebas: la verificación es jugar en el navegador (o con la skill `run` / Playwright).
 
 ## Arquitectura
-Tres archivos: `index.html` (DOM: `<canvas id="board">` 300x600, panel lateral con `#score`, `#lines`, `#level`, `#next-canvas` de 120x120 y `#overlay` para pausa y game over), `style.css` (tema oscuro) y `game.js` (toda la lógica, script clásico con `'use strict'`, sin módulos).
+Tres archivos: `index.html` (DOM: `<canvas id="board">` 300x600, panel lateral con `#score`, `#lines`, `#level`, `#next-canvas` de 120x120, sección de records, selector de skin, `#pause-menu` para la pausa y `#overlay` para game over), `style.css` (tema oscuro) y `game.js` (toda la lógica, script clásico con `'use strict'`, sin módulos).
 
 Claves de `game.js` que requieren leer varias funciones juntas:
 - **Estado global mutable** en variables `let` de módulo (`board`, `current`, `next`, `score`, `lines`, `level`, `paused`, `gameOver`, `dropInterval`, `animId`...). `init()` las reinicia todas; también es el handler del botón Reiniciar.
