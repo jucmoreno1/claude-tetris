@@ -57,7 +57,14 @@ Es una versión jugable del Tetris clásico con todas las mecánicas que esperar
   5. 📦 **Reservar pieza (hold)**: guarda la pieza actual y da 3 usos de reserva con `C` (incluido el de la activación); una vez por pieza.
 - **Sistema de puntuación** clásico de Tetris (100 / 300 / 500 / 800 multiplicado por nivel).
 - **Niveles** que aumentan cada 10 líneas y aceleran la caída.
-- **Pausa** y **Game Over** con opción de reinicio.
+- **Menú de pausa** (`P` o `Esc`): Reanudar, Reiniciar (nueva partida sin recargar), Ver controles y **Nivel inicial** (1 a 10, se guarda en `localStorage` con la clave `tetris.startLevel` y aplica desde la siguiente partida). Con el menú abierto el juego no recibe teclas (las flechas navegan el menú) y, al reanudar, se ignoran las teclas durante unos 150 ms y la autorrepetición de las que seguían pulsadas.
+- **Game Over** con opción de reinicio.
+- **Records locales** (guardados en `localStorage`, clave `tetris.records`, solo en este navegador):
+  - **Top 5** de puntuaciones con nombre del jugador, siempre visible en el panel lateral y en el overlay de Game Over.
+  - Si la puntuación (mayor que 0) entra al Top 5, el Game Over pide un nombre (máximo 12 caracteres; recuerda el último usado) y se guarda con **Guardar** o `Enter`; la fila nueva queda resaltada. Muestra "¡Nuevo récord!" si queda en primer lugar. Si se reinicia sin guardar, esa puntuación no se registra.
+  - **Mejor combo** y **líneas máximas** en una partida, que se actualizan solos al terminar cada partida.
+  - **Combo**: número de piezas fijadas seguidas que limpian al menos una línea; se reinicia a 0 al fijar una pieza que no limpia ninguna.
+  - Botón **Borrar records** (pide confirmación).
 - **Skins visuales** (selector en el panel, junto al botón de tema): **Retro** (bloques cuadrados y colores planos, respeta el tema claro u oscuro), **Neon** (fondo negro y brillo con `shadowBlur`), **Pastel** (colores suaves y esquinas redondeadas) y **Pixel art** (textura de pixeles con luces y sombras). Se cambia sin recargar, se aplica también a las vistas previa, cola y reserva, y se recuerda en `localStorage` (clave `tetris.skin`).
 
 ---
@@ -104,7 +111,7 @@ Después abre `http://localhost:8000` en el navegador.
 | `E`       | Abrir menú de habilidades (energía llena) |
 | `1` a `5` | Elegir habilidad en el menú       |
 | `C`       | Reservar o intercambiar con la reserva (con usos de hold) |
-| `P`       | Pausar / reanudar                 |
+| `P` o `Esc` | Abrir / cerrar el menú de pausa |
 
 ---
 
@@ -118,7 +125,7 @@ Define la estructura visual:
 
 - Un `<canvas id="board">` de **300 × 600** píxeles donde se renderiza el tablero.
 - Un panel lateral con `SCORE`, `LINES`, `LEVEL`, vista de la siguiente pieza y la lista de controles.
-- Un overlay para los estados **PAUSA** y **GAME OVER**.
+- Un overlay `#pause-menu` para el menú de pausa y otro `#overlay` para **GAME OVER**.
 
 ### 2. `style.css`
 
@@ -136,8 +143,9 @@ Contiene toda la lógica del juego. A grandes rasgos:
 - **Game loop** (`loop`): basado en `requestAnimationFrame`, acumula el tiempo transcurrido y baja la pieza una fila cuando se supera `dropInterval`.
 - **Limpieza de líneas** (`clearLines`): recorre el tablero de abajo hacia arriba; cada fila completa se elimina y se inserta una vacía en la cima.
 - **Puntuación**: usa la tabla clásica `[0, 100, 300, 500, 800]` multiplicada por el nivel actual; el hard drop suma 2 puntos por celda recorrida y el soft drop 1 punto por fila.
-- **Nivel y velocidad**: el nivel sube cada 10 líneas; la velocidad de caída se calcula como `max(100, 1000 − (level − 1) × 90)` milisegundos.
+- **Nivel y velocidad**: el nivel es `nivel inicial + floor(líneas / 10)`; la velocidad de caída se calcula como `max(100, 1000 − (level − 1) × 90)` milisegundos.
 - **Ghost piece** (`ghostY`): proyecta la posición final de la pieza actual hacia abajo y la dibuja con `globalAlpha = 0.2`.
+- **Records** (`loadRecords`, `showGameOverRecords`): `tetris.records` guarda `{ top: [{name, score, lines, level, date}], bestCombo, maxLines }`; la lectura es defensiva (un JSON inválido equivale a tabla vacía). `lockPiece` actualiza `combo` y `maxCombo`; `endGame` actualiza los records y muestra el formulario si la puntuación entra al Top 5. Mientras el foco está en el campo de nombre, el teclado no controla el juego.
 
 ### Flujo del juego
 
